@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ambient-expense-agent-deployment
+  namespace: default
+  labels:
+    app: ambient-expense-agent
+    tier: backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ambient-expense-agent
+  template:
+    metadata:
+      labels:
+        app: ambient-expense-agent
+    spec:
+      containers:
+      # Container 1: The main ADK Expense Agent API Server
+      - name: adk-agent-server
+        image: gcr.io/your-gcp-project-id/ambient-expense-agent:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: api-port
+        env:
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gemini-secrets
+              key: gemini-api-key
+        - name: POLICY_SERVER_URL
+          value: "http://127.0.0.1:8181/v1/data/expense/allow"
+        - name: POLICY_SERVER_MOCK
+          value: "false"
+        resources:
+          limits:
+            cpu: "1.0"
+            memory: 1024Mi
+          requests:
+            cpu: "0.5"
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+
+      # Container 2 (Sidecar): Local PDP (Policy Decision Point) Policy Server
+      # In the hybrid Policy Server layout, the local PDP handles policy evaluations
+      # on localhost (low-latency) and writes audit log streams to the central server.
+      - name: local-policy-pdp
+        image: gcr.io/your-gcp-project-id/expense-policy-server:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8181
+          name: pdp-port
+        env:
+        - name: CENTRAL_POLICY_ENDPOINT
+          value: "http://central-policy-authority.production.svc.cluster.local/api/v1"
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: 512Mi
+          requests:
+            cpu: "0.2"
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ambient-expense-agent-service
+  namespace: default
+  labels:
+    app: ambient-expense-agent
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: ambient-expense-agent

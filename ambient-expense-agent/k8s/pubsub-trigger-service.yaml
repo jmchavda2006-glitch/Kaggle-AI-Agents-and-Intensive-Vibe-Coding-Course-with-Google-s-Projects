@@ -1,0 +1,22 @@
+apiVersion: eventing.gke.io/v1
+kind: Trigger
+metadata:
+  name: pubsub-transaction-trigger
+  namespace: expense-production
+  labels:
+    eventing.gke.io/trigger: transaction-triage
+spec:
+  # Eventarc filter for incoming PubSub topic messages
+  filter:
+    attributes:
+      type: google.cloud.pubsub.topic.v1.messagePublished
+      source: //pubsub.googleapis.com/projects/expense-production/topics/transaction-ingest
+  
+  # Subscriber endpoint pointing to the GKE worker ADK workspace agent service
+  destination:
+    ref:
+      apiVersion: v1
+      kind: Service
+      name: ambient-expense-agent-workspace-service
+      namespace: expense-production
+    path: /apps/ambient_expense_agent/trigger/pubsub

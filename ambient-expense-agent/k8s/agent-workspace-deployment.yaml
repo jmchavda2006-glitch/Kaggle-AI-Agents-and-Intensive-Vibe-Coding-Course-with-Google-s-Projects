@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ambient-expense-agent-workspace-deployment
+  namespace: expense-production
+  labels:
+    app: ambient-expense-agent-workspace
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: ambient-expense-agent-workspace
+  template:
+    metadata:
+      labels:
+        app: ambient-expense-agent-workspace
+    spec:
+      containers:
+      # Container 1: Asynchronous ADK Agent Worker
+      - name: adk-agent-worker
+        image: gcr.io/expense-production/ambient-expense-agent-workspace:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: api-port
+        env:
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: gemini-secrets
+              key: gemini-api-key
+        - name: TRIGGER_SOURCES
+          value: "pubsub"  # Configures the server to activate the /apps/{name}/trigger/pubsub endpoint
+        - name: POLICY_SERVER_URL
+          value: "http://127.0.0.1:8181/v1/data/expense/allow"
+        - name: POLICY_SERVER_MOCK
+          value: "false"
+        resources:
+          limits:
+            cpu: "1.5"
+            memory: 1536Mi
+          requests:
+            cpu: "0.75"
+            memory: 512Mi
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+
+      # Container 2 (Sidecar): Local PDP (Policy Decision Point) Policy Server
+      - name: local-policy-pdp
+        image: gcr.io/expense-production/expense-policy-server:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8181
+          name: pdp-port
+        env:
+        - name: CENTRAL_POLICY_ENDPOINT
+          value: "http://central-policy-authority.expense-production.svc.cluster.local/api/v1"
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: 512Mi
+          requests:
+            cpu: "0.2"
+            memory: 256Mi
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ambient-expense-agent-workspace-service
+  namespace: expense-production
+  labels:
+    app: ambient-expense-agent-workspace
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: ambient-expense-agent-workspace

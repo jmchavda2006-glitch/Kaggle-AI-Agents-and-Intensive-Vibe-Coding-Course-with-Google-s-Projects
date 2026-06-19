@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # The main ADK agent service
+  agent-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=your-gemini-api-key-here
+      # Connect to the policy-server service container
+      - POLICY_SERVER_URL=http://policy-server:8181/v1/data/expense/allow
+      - POLICY_SERVER_MOCK=false
+    depends_on:
+      - policy-server
+    networks:
+      - zero-trust-network
+
+  # The Local PDP (Policy Decision Point) Policy Server
+  policy-server:
+    image: python:3.11-slim
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: sh -c "pip install fastapi uvicorn pydantic && python policy_server.py"
+    ports:
+      - "8181:8181"
+    environment:
+      - CENTRAL_POLICY_ENDPOINT=http://central-policy-authority.local/api/v1
+    networks:
+      - zero-trust-network
+
+networks:
+  zero-trust-network:
+    driver: bridge

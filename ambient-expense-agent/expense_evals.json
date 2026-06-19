@@ -1,0 +1,39 @@
+{
+  "eval_set_id": "expense_approval_evals",
+  "name": "Expense Approval Evals",
+  "description": "Eval cases to test the ambient expense approval workflow and triage guardrail.",
+  "eval_cases": [
+    {
+      "eval_id": "test_under_limit",
+      "conversation": [
+        {
+          "invocation_id": "turn_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "I want to submit an expense of Rs 5,000 for team lunch."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "test_over_limit_triggers_approval",
+      "conversation": [
+        {
+          "invocation_id": "turn_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "I want to submit an expense of Rs 15,000 for client dinner."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

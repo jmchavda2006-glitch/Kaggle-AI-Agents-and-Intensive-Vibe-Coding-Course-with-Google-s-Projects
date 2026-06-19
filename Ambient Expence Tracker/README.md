@@ -8,7 +8,7 @@ This project is an enterprise-grade async transaction validation system built wi
 
 Click the link below to launch the full production workspace console and try out the live system:
 
-👉 **[Launch ExpenseGuard Live Demo Workspace](https://jmchavda2006-glitch.github.io/gemini-ai-studio-prototype/)**
+👉 **[Launch ExpenseGuard Live Demo Workspace](https://ambient-expense-tracker-658545020402.asia-southeast1.run.app/)**
 
 ---
 

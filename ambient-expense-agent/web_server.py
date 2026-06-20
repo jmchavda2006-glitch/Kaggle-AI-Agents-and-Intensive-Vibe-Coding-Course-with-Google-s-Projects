@@ -91,7 +91,7 @@ async def run_cloud_agent_background(transaction_id: str, query: str, user: str,
 
         session = await session_service.create_session(
             app_name=runner.app_name,
-            id=transaction_id
+            id=transaction_id,
             user_id=user
         )
 

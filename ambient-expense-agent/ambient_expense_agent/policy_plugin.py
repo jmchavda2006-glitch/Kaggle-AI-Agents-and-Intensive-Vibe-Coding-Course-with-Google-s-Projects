@@ -38,7 +38,7 @@ class ZeroTrustPolicyPlugin(BasePlugin):
         # 2. Extract amount from the user's message
         user_msg_text = ""
         if invocation_context.user_content and invocation_context.user_content.parts:
-            user_msg_text = invocation_context.user_content.parts[0].text or ""
+            user_msg_text = invocation_context.user_content.parts.text or ""
         
         if user_msg_text:
             text_clean = user_msg_text.replace(",", "")
@@ -72,10 +72,10 @@ class ZeroTrustPolicyPlugin(BasePlugin):
         amount = 0.0
         currency = "INR"
 
-        ctx = callback_context.context
-        if ctx and hasattr(ctx, "variables"):
-            role = ctx.variables.get("security_role", role)
-            user = ctx.variables.get("security_user", user)
+        # FIX: Access variables directly from callback_context instead of looking for nested .context attribute
+        if callback_context and hasattr(callback_context, "variables"):
+            role = callback_context.variables.get("security_role", role)
+            user = callback_context.variables.get("security_user", user)
         else:
             role = os.environ.get("SEC_ROLE", role)
             user = os.environ.get("SEC_USER", user)

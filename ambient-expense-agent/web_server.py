@@ -343,4 +343,10 @@ def uuid_str() -> str:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=5000)
+    import os
+    
+    # Render automatically passes an environment port variable. Fall back to 5000 if running locally.
+    port = int(os.environ.get("PORT", 5000))
+    
+    # Force host to 0.0.0.0 so Render's global routers can find your application interface
+    uvicorn.run(app, host="0.0.0.0", port=port)

@@ -198,9 +198,14 @@ async def run_cloud_agent_resume_background(transaction_id: str, approved: bool,
             ]
         )
 
+        # FIXED: Look up the verified ADK framework context UUID from internal session storage 
+        # to circumvent tracking mismatch issues during user manual review hooks.
+        adk_sessions = await runner.session_service.list_sessions(app_name=runner.app_name, user_id=user)
+        target_session_id = adk_sessions.id if adk_sessions else transaction_id
+
         async for event in runner.run_async(
             user_id=user,
-            session_id=transaction_id,
+            session_id=target_session_id,
             new_message=new_message
         ):
             if event.node_info and "triage_guardrail" in event.node_info.path:

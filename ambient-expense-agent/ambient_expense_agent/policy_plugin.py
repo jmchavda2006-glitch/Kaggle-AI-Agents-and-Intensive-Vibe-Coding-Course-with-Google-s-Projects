@@ -35,10 +35,21 @@ class ZeroTrustPolicyPlugin(BasePlugin):
         role = os.environ.get("SEC_ROLE", role)
         user = os.environ.get("SEC_USER", user)
 
-        # 2. Extract amount from the user's message
+        # 2. Extract amount from the user's message safely handling both object lists and structures
         user_msg_text = ""
         if invocation_context.user_content and invocation_context.user_content.parts:
-            user_msg_text = invocation_context.user_content.parts.text or ""
+            parts = invocation_context.user_content.parts
+            
+            # Safely check if parts is returned as a list array structure
+            first_part = parts if isinstance(parts, list) and len(parts) > 0 else parts
+            
+            # Safe checking for both explicit object properties and raw dictionary indices
+            if hasattr(first_part, "text"):
+                user_msg_text = first_part.text or ""
+            elif isinstance(first_part, dict):
+                user_msg_text = first_part.get("text", "")
+            elif isinstance(first_part, str):
+                user_msg_text = first_part
         
         if user_msg_text:
             text_clean = user_msg_text.replace(",", "")
@@ -72,7 +83,7 @@ class ZeroTrustPolicyPlugin(BasePlugin):
         amount = 0.0
         currency = "INR"
 
-        # FIX: Access variables directly from callback_context instead of looking for nested .context attribute
+        # Access variables directly from callback_context instead of looking for a nested context attribute
         if callback_context and hasattr(callback_context, "variables"):
             role = callback_context.variables.get("security_role", role)
             user = callback_context.variables.get("security_user", user)

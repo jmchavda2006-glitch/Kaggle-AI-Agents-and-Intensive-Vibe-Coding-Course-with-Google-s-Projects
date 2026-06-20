@@ -198,10 +198,12 @@ async def run_cloud_agent_resume_background(transaction_id: str, approved: bool,
             ]
         )
 
-        # FIXED: Look up the verified ADK framework context UUID from internal session storage 
-        # to circumvent tracking mismatch issues during user manual review hooks.
-        adk_sessions = await runner.session_service.list_sessions(app_name=runner.app_name, user_id=user)
-        target_session_id = adk_sessions.id if adk_sessions else transaction_id
+        # FIXED: Safely extract the inner session array out from the ListSessionsResponse wrapper layout
+        adk_sessions_resp = await runner.session_service.list_sessions(app_name=runner.app_name, user_id=user)
+        
+        target_session_id = transaction_id
+        if adk_sessions_resp and hasattr(adk_sessions_resp, "sessions") and adk_sessions_resp.sessions:
+            target_session_id = adk_sessions_resp.sessions.id
 
         async for event in runner.run_async(
             user_id=user,
